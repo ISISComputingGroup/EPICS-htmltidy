@@ -1,4 +1,4 @@
-LIBRARY libtidy
+LIBRARY htmltidy
   EXPORTS
     tidyCreate                    @1001
     tidyRelease                   @1002
