@@ -8,6 +8,11 @@
    $Id: mappedio.c,v 1.14 2008/03/18 20:19:35 arnaud02 Exp $
 */
 
+/* incude this early to avoid a clash with the CR macro defined later */
+#ifdef _WIN32
+#include <windows.h>
+#endif /* _WIN32 */
+
 /* keep these here to keep file non-empty */
 #include "forward.h"
 #include "mappedio.h"
