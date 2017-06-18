@@ -52,7 +52,8 @@ htmltidy_SRCS += \
 
 htmltidy_SRCS_WIN32 += win32tc.c
 
-INC += platform.h  tidy.h  tidyenum.h buffio.h
+TIDY_INCS = platform.h  tidy.h  tidyenum.h buffio.h
+#INC += $(TIDY_INCS)
 
 tidy_SRCS += tidy.c
 tab2space_SRCS += tab2space.c
@@ -81,4 +82,6 @@ tab2space_LIBS += $(EPICS_BASE_HOST_LIBS)
 include $(TOP)/configure/RULES
 #----------------------------------------
 #  ADD RULES AFTER THIS LINE
+install:
+	$(INSTALL) -d -m $(INSTALL_PERMISSIONS) $(foreach f,$(TIDY_INCS),$(TIDYDIR)/include/$(f)) $(INSTALL_INCLUDE)
 
