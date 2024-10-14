@@ -418,8 +418,8 @@ install(TARGETS ${name}
 install( FILES ${HFILES} DESTINATION ${INCLUDE_INSTALL_DIR} )
 if(MSVC)
     # install(FILES $<TARGET_PDB_FILE:${name}> DESTINATION lib OPTIONAL)
-    INSTALL(FILES ${PROJECT_BINARY_DIR}/${name}.dir/Debug/${name}.pdb
-    DESTINATION lib CONFIGURATIONS Debug )
+#    INSTALL(FILES ${PROJECT_BINARY_DIR}/${name}.dir/Debug/${name}.pdb
+#    DESTINATION lib CONFIGURATIONS Debug )
 endif()
 
 #------------------------------------------------------------------------
