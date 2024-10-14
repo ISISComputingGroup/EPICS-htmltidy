@@ -5,12 +5,6 @@
 
   (c) 1998-2007 (W3C) MIT, ERCIM, Keio University
   See tidy.h for the copyright notice.
-  
-  CVS Info :
-
-    $Author: arnaud02 $ 
-    $Date: 2007/06/14 09:36:06 $ 
-    $Revision: 1.29 $ 
 
 */
 
@@ -23,7 +17,6 @@ struct _Attribute
 {
     TidyAttrId  id;
     tmbstr      name;
-    unsigned    versions;
     AttrCheck*  attrchk;
 
     struct _Attribute* next;
@@ -43,11 +36,6 @@ struct _Anchor
 
 typedef struct _Anchor Anchor;
 
-#if !defined(ATTRIBUTE_HASH_LOOKUP)
-#define ATTRIBUTE_HASH_LOOKUP 1
-#endif
-
-#if ATTRIBUTE_HASH_LOOKUP
 enum
 {
     ATTRIBUTE_HASH_SIZE=178u
@@ -60,47 +48,70 @@ struct _AttrHash
 };
 
 typedef struct _AttrHash AttrHash;
-#endif
+
+enum
+{
+    ANCHOR_HASH_SIZE=1021u
+};
+
+/* Keeps a list of attributes that are sorted ahead of the others. */
+typedef struct _priorityAttribs {
+    tmbstr* list;
+    uint count;
+    uint capacity;
+} PriorityAttribs;
 
 struct _TidyAttribImpl
 {
     /* anchor/node lookup */
-    Anchor*    anchor_list;
+    Anchor*    anchor_hash[ANCHOR_HASH_SIZE];
 
     /* Declared literal attributes */
     Attribute* declared_attr_list;
 
-#if ATTRIBUTE_HASH_LOOKUP
+    /* Prioritized list of attributes to write */
+    PriorityAttribs priorityAttribs;
+
     AttrHash*  hashtab[ATTRIBUTE_HASH_SIZE];
-#endif
 };
 
 typedef struct _TidyAttribImpl TidyAttribImpl;
 
 #define XHTML_NAMESPACE "http://www.w3.org/1999/xhtml"
 
-AttrCheck TY_(CheckUrl);
+TY_PRIVATE AttrCheck TY_(CheckUrl);
 
 /* public method for finding attribute definition by name */
-const Attribute* TY_(CheckAttribute)( TidyDocImpl* doc, Node *node, AttVal *attval );
+TY_PRIVATE const Attribute* TY_(CheckAttribute)( TidyDocImpl* doc, Node *node, AttVal *attval );
 
-const Attribute* TY_(FindAttribute)( TidyDocImpl* doc, AttVal *attval );
+TY_PRIVATE const Attribute* TY_(FindAttribute)( TidyDocImpl* doc, AttVal *attval );
 
-AttVal* TY_(GetAttrByName)( Node *node, ctmbstr name );
+TY_PRIVATE AttVal* TY_(GetAttrByName)( Node *node, ctmbstr name );
 
-AttVal* TY_(AddAttribute)( TidyDocImpl* doc,
+TY_PRIVATE void TY_(DropAttrByName)( TidyDocImpl* doc, Node *node, ctmbstr name );
+
+TY_PRIVATE AttVal* TY_(AddAttribute)( TidyDocImpl* doc,
                            Node *node, ctmbstr name, ctmbstr value );
 
-AttVal* TY_(RepairAttrValue)(TidyDocImpl* doc, Node* node, ctmbstr name, ctmbstr value);
+TY_PRIVATE AttVal* TY_(RepairAttrValue)(TidyDocImpl* doc, Node* node, ctmbstr name, ctmbstr value);
 
-Bool TY_(IsUrl)( TidyDocImpl* doc, ctmbstr attrname );
+/* Add an item to the list of priority attributes to write first. */
+TY_PRIVATE void TY_(DefinePriorityAttribute)(TidyDocImpl* doc, ctmbstr name);
+
+/* Start an iterator for priority attributes. */
+TY_PRIVATE TidyIterator TY_(getPriorityAttrList)( TidyDocImpl* doc );
+
+/* Get the next priority attribute. */
+TY_PRIVATE ctmbstr TY_(getNextPriorityAttr)( TidyDocImpl* doc, TidyIterator* iter );
+
+TY_PRIVATE Bool TY_(IsUrl)( TidyDocImpl* doc, ctmbstr attrname );
 
 /* Bool IsBool( TidyDocImpl* doc, ctmbstr attrname ); */
 
-Bool TY_(IsScript)( TidyDocImpl* doc, ctmbstr attrname );
+TY_PRIVATE Bool TY_(IsScript)( TidyDocImpl* doc, ctmbstr attrname );
 
 /* may id or name serve as anchor? */
-Bool TY_(IsAnchorElement)( TidyDocImpl* doc, Node* node );
+TY_PRIVATE Bool TY_(IsAnchorElement)( TidyDocImpl* doc, Node* node );
 
 /*
   In CSS1, selectors can contain only the characters A-Z, 0-9, and
@@ -116,36 +127,42 @@ Bool TY_(IsAnchorElement)( TidyDocImpl* doc, Node* node );
 
   #508936 - CSS class naming for -clean option
 */
-Bool TY_(IsCSS1Selector)( ctmbstr buf );
+TY_PRIVATE Bool TY_(IsCSS1Selector)( ctmbstr buf );
 
-Bool TY_(IsValidHTMLID)(ctmbstr id);
-Bool TY_(IsValidXMLID)(ctmbstr id);
+TY_PRIVATE Bool TY_(IsValidHTMLID)(ctmbstr id);
+TY_PRIVATE Bool TY_(IsValidXMLID)(ctmbstr id);
 
 /* removes anchor for specific node */
-void TY_(RemoveAnchorByNode)( TidyDocImpl* doc, Node *node );
+TY_PRIVATE void TY_(RemoveAnchorByNode)( TidyDocImpl* doc, ctmbstr name, Node *node );
 
 /* free all anchors */
-void TY_(FreeAnchors)( TidyDocImpl* doc );
+TY_PRIVATE void TY_(FreeAnchors)( TidyDocImpl* doc );
 
 
 /* public methods for inititializing/freeing attribute dictionary */
-void TY_(InitAttrs)( TidyDocImpl* doc );
-void TY_(FreeAttrTable)( TidyDocImpl* doc );
+TY_PRIVATE void TY_(InitAttrs)( TidyDocImpl* doc );
+TY_PRIVATE void TY_(FreeAttrTable)( TidyDocImpl* doc );
 
-void TY_(AppendToClassAttr)( TidyDocImpl* doc, AttVal *classattr, ctmbstr classname );
+TY_PRIVATE void TY_(FreeAttrPriorityList)( TidyDocImpl* doc );
+
+TY_PRIVATE void TY_(AppendToClassAttr)( TidyDocImpl* doc, AttVal *classattr, ctmbstr classname );
 /*
  the same attribute name can't be used
  more than once in each element
 */
-void TY_(RepairDuplicateAttributes)( TidyDocImpl* doc, Node* node, Bool isXml );
-void TY_(SortAttributes)(Node* node, TidyAttrSortStrategy strat);
+TY_PRIVATE void TY_(RepairDuplicateAttributes)( TidyDocImpl* doc, Node* node, Bool isXml );
+TY_PRIVATE void TY_(SortAttributes)(TidyDocImpl* doc, Node* node, TidyAttrSortStrategy strat);
 
-Bool TY_(IsBoolAttribute)( AttVal* attval );
-Bool TY_(attrIsEvent)( AttVal* attval );
+TY_PRIVATE Bool TY_(IsBoolAttribute)( AttVal* attval );
+TY_PRIVATE Bool TY_(attrIsEvent)( AttVal* attval );
 
-AttVal* TY_(AttrGetById)( Node* node, TidyAttrId id );
+TY_PRIVATE AttVal* TY_(AttrGetById)( Node* node, TidyAttrId id );
 
-uint TY_(NodeAttributeVersions)( Node* node, TidyAttrId id );
+TY_PRIVATE uint TY_(NodeAttributeVersions)( Node* node, TidyAttrId id );
+
+TY_PRIVATE Bool TY_(AttributeIsProprietary)(Node* node, AttVal* attval);
+TY_PRIVATE Bool TY_(AttributeIsMismatched)(Node* node, AttVal* attval, TidyDocImpl* doc);
+
 
 /* 0 == TidyAttr_UNKNOWN  */
 #define AttrId(av) ((av) && (av)->dict ? (av)->dict->id : TidyAttr_UNKNOWN)
@@ -180,6 +197,7 @@ uint TY_(NodeAttributeVersions)( Node* node, TidyAttrId id );
 #define attrIsBOTTOMMARGIN(av)      AttrIsId( av, TidyAttr_BOTTOMMARGIN  )
 #define attrIsCELLPADDING(av)       AttrIsId( av, TidyAttr_CELLPADDING  )
 #define attrIsCELLSPACING(av)       AttrIsId( av, TidyAttr_CELLSPACING  )
+#define attrIsCHARSET(av)           AttrIsId( av, TidyAttr_CHARSET  )
 #define attrIsCHAR(av)              AttrIsId( av, TidyAttr_CHAR  )
 #define attrIsCHAROFF(av)           AttrIsId( av, TidyAttr_CHAROFF  )
 #define attrIsCHARSET(av)           AttrIsId( av, TidyAttr_CHARSET  )
@@ -224,6 +242,11 @@ uint TY_(NodeAttributeVersions)( Node* node, TidyAttrId id );
 #define attrIsHTTP_EQUIV(av)        AttrIsId( av, TidyAttr_HTTP_EQUIV  )
 #define attrIsID(av)                AttrIsId( av, TidyAttr_ID  )
 #define attrIsISMAP(av)             AttrIsId( av, TidyAttr_ISMAP  )
+#define attrIsITEMID(av)            AttrIsId( av, TidyAttr_ITEMID  )
+#define attrIsITEMPROP(av)          AttrIsId( av, TidyAttr_ITEMPROP  )
+#define attrIsITEMREF(av)           AttrIsId( av, TidyAttr_ITEMREF  )
+#define attrIsITEMSCOPE(av)         AttrIsId( av, TidyAttr_ITEMSCOPE  )
+#define attrIsITEMTYPE(av)          AttrIsId( av, TidyAttr_ITEMTYPE  )
 #define attrIsLABEL(av)             AttrIsId( av, TidyAttr_LABEL  )
 #define attrIsLANG(av)              AttrIsId( av, TidyAttr_LANG  )
 #define attrIsLANGUAGE(av)          AttrIsId( av, TidyAttr_LANGUAGE  )
@@ -279,6 +302,7 @@ uint TY_(NodeAttributeVersions)( Node* node, TidyAttrId id );
 #define attrIsREL(av)               AttrIsId( av, TidyAttr_REL  )
 #define attrIsREV(av)               AttrIsId( av, TidyAttr_REV  )
 #define attrIsRIGHTMARGIN(av)       AttrIsId( av, TidyAttr_RIGHTMARGIN  )
+#define attrIsROLE(av)              AttrIsId( av, TidyAttr_ROLE  )
 #define attrIsROWS(av)              AttrIsId( av, TidyAttr_ROWS  )
 #define attrIsROWSPAN(av)           AttrIsId( av, TidyAttr_ROWSPAN  )
 #define attrIsRULES(av)             AttrIsId( av, TidyAttr_RULES  )
@@ -291,6 +315,7 @@ uint TY_(NodeAttributeVersions)( Node* node, TidyAttrId id );
 #define attrIsSHOWGRIDX(av)         AttrIsId( av, TidyAttr_SHOWGRIDX  )
 #define attrIsSHOWGRIDY(av)         AttrIsId( av, TidyAttr_SHOWGRIDY  )
 #define attrIsSIZE(av)              AttrIsId( av, TidyAttr_SIZE  )
+#define attrIsSLOT(av)              AttrIsId( av, TidyAttr_SLOT  )
 #define attrIsSPAN(av)              AttrIsId( av, TidyAttr_SPAN  )
 #define attrIsSRC(av)               AttrIsId( av, TidyAttr_SRC  )
 #define attrIsSTANDBY(av)           AttrIsId( av, TidyAttr_STANDBY  )
@@ -315,7 +340,55 @@ uint TY_(NodeAttributeVersions)( Node* node, TidyAttrId id );
 #define attrIsXMLNS(av)             AttrIsId( av, TidyAttr_XMLNS  )
 #define attrIsXML_LANG(av)          AttrIsId( av, TidyAttr_XML_LANG  )
 #define attrIsXML_SPACE(av)         AttrIsId( av, TidyAttr_XML_SPACE  )
-
+#define attrIsARIA_ACTIVEDESCENDANT(av) AttrIsId( av,  TidyAttr_ARIA_ACTIVEDESCENDANT  )
+#define attrIsARIA_ATOMIC(av)           AttrIsId( av,  TidyAttr_ARIA_ATOMIC  )
+#define attrIsARIA_AUTOCOMPLETE(av)     AttrIsId( av,  TidyAttr_ARIA_AUTOCOMPLETE  )
+#define attrIsARIA_BUSY(av)             AttrIsId( av,  TidyAttr_ARIA_BUSY  )
+#define attrIsARIA_CHECKED(av)          AttrIsId( av,  TidyAttr_ARIA_CHECKED  )
+#define attrIsARIA_CONTROLS(av)         AttrIsId( av,  TidyAttr_ARIA_CONTROLS  )
+#define attrIsARIA_DESCRIBEDBY(av)      AttrIsId( av,  TidyAttr_ARIA_DESCRIBEDBY  )
+#define attrIsARIA_DISABLED(av)         AttrIsId( av,  TidyAttr_ARIA_DISABLED  )
+#define attrIsARIA_DROPEFFECT(av)       AttrIsId( av,  TidyAttr_ARIA_DROPEFFECT  )
+#define attrIsARIA_EXPANDED(av)         AttrIsId( av,  TidyAttr_ARIA_EXPANDED  )
+#define attrIsARIA_FLOWTO(av)           AttrIsId( av,  TidyAttr_ARIA_FLOWTO  )
+#define attrIsARIA_GRABBED(av)          AttrIsId( av,  TidyAttr_ARIA_GRABBED  )
+#define attrIsARIA_HASPOPUP(av)         AttrIsId( av,  TidyAttr_ARIA_HASPOPUP  )
+#define attrIsARIA_HIDDEN(av)           AttrIsId( av,  TidyAttr_ARIA_HIDDEN  )
+#define attrIsARIA_INVALID(av)          AttrIsId( av,  TidyAttr_ARIA_INVALID  )
+#define attrIsARIA_LABEL(av)            AttrIsId( av,  TidyAttr_ARIA_LABEL  )
+#define attrIsARIA_LABELLEDBY(av)       AttrIsId( av,  TidyAttr_ARIA_LABELLEDBY  )
+#define attrIsARIA_LEVEL(av)            AttrIsId( av,  TidyAttr_ARIA_LEVEL  )
+#define attrIsARIA_LIVE(av)             AttrIsId( av,  TidyAttr_ARIA_LIVE  )
+#define attrIsARIA_MULTILINE(av)        AttrIsId( av,  TidyAttr_ARIA_MULTILINE  )
+#define attrIsARIA_MULTISELECTABLE(av)  AttrIsId( av,  TidyAttr_ARIA_MULTISELECTABLE  )
+#define attrIsARIA_ORIENTATION(av)      AttrIsId( av,  TidyAttr_ARIA_ORIENTATION  )
+#define attrIsARIA_OWNS(av)             AttrIsId( av,  TidyAttr_ARIA_OWNS  )
+#define attrIsARIA_POSINSET(av)         AttrIsId( av,  TidyAttr_ARIA_POSINSET  )
+#define attrIsARIA_PRESSED(av)          AttrIsId( av,  TidyAttr_ARIA_PRESSED  )
+#define attrIsARIA_READONLY(av)         AttrIsId( av,  TidyAttr_ARIA_READONLY  )
+#define attrIsARIA_RELEVANT(av)         AttrIsId( av,  TidyAttr_ARIA_RELEVANT  )
+#define attrIsARIA_REQUIRED(av)         AttrIsId( av,  TidyAttr_ARIA_REQUIRED  )
+#define attrIsARIA_SELECTED(av)         AttrIsId( av,  TidyAttr_ARIA_SELECTED  )
+#define attrIsARIA_SETSIZE(av)          AttrIsId( av,  TidyAttr_ARIA_SETSIZE  )
+#define attrIsARIA_SORT(av)             AttrIsId( av,  TidyAttr_ARIA_SORT  )
+#define attrIsARIA_VALUEMAX(av)         AttrIsId( av,  TidyAttr_ARIA_VALUEMAX  )
+#define attrIsARIA_VALUEMIN(av)         AttrIsId( av,  TidyAttr_ARIA_VALUEMIN  )
+#define attrIsARIA_VALUENOW(av)         AttrIsId( av,  TidyAttr_ARIA_VALUENOW  )
+#define attrIsARIA_VALUETEXT(av)        AttrIsId( av,  TidyAttr_ARIA_VALUETEXT  )
+#define attrIsSVG_FILL(av)              AttrIsId( av,  TidyAttr_FILL  )
+#define attrIsSVG_FILLRULE(av)          AttrIsId( av,  TidyAttr_FILLRULE  )
+#define attrIsSVG_STROKE(av)            AttrIsId( av,  TidyAttr_STROKE  )
+#define attrIsSVG_STROKEDASHARRAY(av)   AttrIsId( av,  TidyAttr_STROKEDASHARRAY  )
+#define attrIsSVG_STROKEDASHOFFSET(av)  AttrIsId( av,  TidyAttr_STROKEDASHOFFSET  )
+#define attrIsSVG_STROKELINECAP(av)     AttrIsId( av,  TidyAttr_STROKELINECAP  )
+#define attrIsSVG_STROKELINEJOIN(av)    AttrIsId( av,  TidyAttr_STROKELINEJOIN  )
+#define attrIsSVG_STROKEMITERLIMIT(av)  AttrIsId( av,  TidyAttr_STROKEMITERLIMIT  )
+#define attrIsSVG_STROKEWIDTH(av)       AttrIsId( av,  TidyAttr_STROKEWIDTH  )
+#define attrIsSVG_COLORINTERPOLATION(a) AttrIsId(  a,  TidyAttr_COLORINTERPOLATION  )
+#define attrIsSVG_COLORRENDERING(av)    AttrIsId( av,  TidyAttr_COLORRENDERING  )
+#define attrIsSVG_OPACITY(av)           AttrIsId( av,  TidyAttr_OPACITY  )
+#define attrIsSVG_STROKEOPACITY(av)     AttrIsId( av,  TidyAttr_STROKEOPACITY  )
+#define attrIsSVG_FILLOPACITY(av)       AttrIsId( av,  TidyAttr_FILLOPACITY  )
 
 /* Attribute Retrieval macros
 */
@@ -339,6 +412,7 @@ uint TY_(NodeAttributeVersions)( Node* node, TidyAttrId id );
 #define attrGetHEIGHT( nod )      TY_(AttrGetById)( nod, TidyAttr_HEIGHT  )
 #define attrGetFOR( nod )         TY_(AttrGetById)( nod, TidyAttr_FOR  )
 #define attrGetSELECTED( nod )    TY_(AttrGetById)( nod, TidyAttr_SELECTED  )
+#define attrGetCHARSET( nod )     TY_(AttrGetById)( nod, TidyAttr_CHARSET  )
 #define attrGetCHECKED( nod )     TY_(AttrGetById)( nod, TidyAttr_CHECKED  )
 #define attrGetLANG( nod )        TY_(AttrGetById)( nod, TidyAttr_LANG  )
 #define attrGetTARGET( nod )      TY_(AttrGetById)( nod, TidyAttr_TARGET  )
@@ -370,5 +444,43 @@ uint TY_(NodeAttributeVersions)( Node* node, TidyAttrId id );
 #define attrGetFONT( nod )        TY_(AttrGetById)( nod, TidyAttr_FONT  )
 #define attrGetBASEFONT( nod )    TY_(AttrGetById)( nod, TidyAttr_BASEFONT  )
 #define attrGetROWSPAN( nod )     TY_(AttrGetById)( nod, TidyAttr_ROWSPAN  )
+
+#define attrGetROLE( nod )        TY_(AttrGetById)( nod, TidyAttr_ROLE  )
+
+#define attrGetARIA_ACTIVEDESCENDANT( nod ) TY_(AttrGetById)( nod,  TidyAttr_ARIA_ACTIVEDESCENDANT  )
+#define attrGetARIA_ATOMIC( nod )           TY_(AttrGetById)( nod,  TidyAttr_ARIA_ATOMIC  )
+#define attrGetARIA_AUTOCOMPLETE( nod )     TY_(AttrGetById)( nod,  TidyAttr_ARIA_AUTOCOMPLETE  )
+#define attrGetARIA_BUSY( nod )             TY_(AttrGetById)( nod,  TidyAttr_ARIA_BUSY  )
+#define attrGetARIA_CHECKED( nod )          TY_(AttrGetById)( nod,  TidyAttr_ARIA_CHECKED  )
+#define attrGetARIA_CONTROLS( nod )         TY_(AttrGetById)( nod,  TidyAttr_ARIA_CONTROLS  )
+#define attrGetARIA_DESCRIBEDBY( nod )      TY_(AttrGetById)( nod,  TidyAttr_ARIA_DESCRIBEDBY  )
+#define attrGetARIA_DISABLED( nod )         TY_(AttrGetById)( nod,  TidyAttr_ARIA_DISABLED  )
+#define attrGetARIA_DROPEFFECT( nod )       TY_(AttrGetById)( nod,  TidyAttr_ARIA_DROPEFFECT  )
+#define attrGetARIA_EXPANDED( nod )         TY_(AttrGetById)( nod,  TidyAttr_ARIA_EXPANDED  )
+#define attrGetARIA_FLOWTO( nod )           TY_(AttrGetById)( nod,  TidyAttr_ARIA_FLOWTO  )
+#define attrGetARIA_GRABBED( nod )          TY_(AttrGetById)( nod,  TidyAttr_ARIA_GRABBED  )
+#define attrGetARIA_HASPOPUP( nod )         TY_(AttrGetById)( nod,  TidyAttr_ARIA_HASPOPUP  )
+#define attrGetARIA_HIDDEN( nod )           TY_(AttrGetById)( nod,  TidyAttr_ARIA_HIDDEN  )
+#define attrGetARIA_INVALID( nod )          TY_(AttrGetById)( nod,  TidyAttr_ARIA_INVALID  )
+#define attrGetARIA_LABEL( nod )            TY_(AttrGetById)( nod,  TidyAttr_ARIA_LABEL  )
+#define attrGetARIA_LABELLEDBY( nod )       TY_(AttrGetById)( nod,  TidyAttr_ARIA_LABELLEDBY  )
+#define attrGetARIA_LEVEL( nod )            TY_(AttrGetById)( nod,  TidyAttr_ARIA_LEVEL  )
+#define attrGetARIA_LIVE( nod )             TY_(AttrGetById)( nod,  TidyAttr_ARIA_LIVE  )
+#define attrGetARIA_MULTILINE( nod )        TY_(AttrGetById)( nod,  TidyAttr_ARIA_MULTILINE  )
+#define attrGetARIA_MULTISELECTABLE( nod )  TY_(AttrGetById)( nod,  TidyAttr_ARIA_MULTISELECTABLE  )
+#define attrGetARIA_ORIENTATION( nod )      TY_(AttrGetById)( nod,  TidyAttr_ARIA_ORIENTATION  )
+#define attrGetARIA_OWNS( nod )             TY_(AttrGetById)( nod,  TidyAttr_ARIA_OWNS  )
+#define attrGetARIA_POSINSET( nod )         TY_(AttrGetById)( nod,  TidyAttr_ARIA_POSINSET  )
+#define attrGetARIA_PRESSED( nod )          TY_(AttrGetById)( nod,  TidyAttr_ARIA_PRESSED  )
+#define attrGetARIA_READONLY( nod )         TY_(AttrGetById)( nod,  TidyAttr_ARIA_READONLY  )
+#define attrGetARIA_RELEVANT( nod )         TY_(AttrGetById)( nod,  TidyAttr_ARIA_RELEVANT  )
+#define attrGetARIA_REQUIRED( nod )         TY_(AttrGetById)( nod,  TidyAttr_ARIA_REQUIRED  )
+#define attrGetARIA_SELECTED( nod )         TY_(AttrGetById)( nod,  TidyAttr_ARIA_SELECTED  )
+#define attrGetARIA_SETSIZE( nod )          TY_(AttrGetById)( nod,  TidyAttr_ARIA_SETSIZE  )
+#define attrGetARIA_SORT( nod )             TY_(AttrGetById)( nod,  TidyAttr_ARIA_SORT  )
+#define attrGetARIA_VALUEMAX( nod )         TY_(AttrGetById)( nod,  TidyAttr_ARIA_VALUEMAX  )
+#define attrGetARIA_VALUEMIN( nod )         TY_(AttrGetById)( nod,  TidyAttr_ARIA_VALUEMIN  )
+#define attrGetARIA_VALUENOW( nod )         TY_(AttrGetById)( nod,  TidyAttr_ARIA_VALUENOW  )
+#define attrGetARIA_VALUETEXT( nod )        TY_(AttrGetById)( nod,  TidyAttr_ARIA_VALUETEXT  )
 
 #endif /* __ATTRS_H__ */
