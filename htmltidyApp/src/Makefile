@@ -48,14 +48,18 @@ include $(TOP)/configure/RULES
 ifdef T_A
 install:
 	$(CMAKE) $(TOP)/htmltidy -G "$(CMAKE_GENERATOR)" -A "$(PLATFORM)" -DCMAKE_INSTALL_PREFIX:PATH="$(INSTALL_DIR)" $(CMAKE_CONFIG_FLAGS)
-	$(CMAKE) --build . --target INSTALL --config $(CMAKE_CONFIG) $(CMAKE_BUILD_FLAGS)
+	$(CMAKE) --build . --target install --config $(CMAKE_CONFIG) $(CMAKE_BUILD_FLAGS)
 	-$(MKDIR) $(TOP)/bin
 	-$(MKDIR) $(TOP)/bin/$(EPICS_HOST_ARCH)
 	-$(MKDIR) $(TOP)/lib
 	-$(MKDIR) $(TOP)/lib/$(EPICS_HOST_ARCH)
 	-$(MKDIR) $(TOP)/include
 	$(CP) -f $(INSTALL_DIR)/include/*.h* $(TOP)/include/
+ifeq ($(findstring linux,$(EPICS_HOST_ARCH)),)
 	$(RM) -f $(INSTALL_DIR)/lib/tidy_static*.lib
-	$(CP) -f $(INSTALL_DIR)/lib/tidy*.lib $(TOP)/lib/$(EPICS_HOST_ARCH)/htmltidy.lib
+	$(CP) -f $(INSTALL_DIR)/lib/tidy*.lib $(TOP)/lib/$(EPICS_HOST_ARCH)/tidy.lib
+else
+	$(CP) -f $(INSTALL_DIR)/lib/libtidy.* $(TOP)/lib/$(EPICS_HOST_ARCH)/
+endif
 	$(CP) -f $(INSTALL_DIR)/bin/* $(TOP)/bin/$(EPICS_HOST_ARCH)/
 endif
