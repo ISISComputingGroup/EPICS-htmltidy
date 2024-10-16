@@ -6,12 +6,6 @@
   (c) 1998-2007 (W3C) MIT, ERCIM, Keio University
   See tidy.h for the copyright notice.
 
-  CVS Info :
-
-    $Author: arnaud02 $ 
-    $Date: 2007/02/11 09:45:52 $ 
-    $Revision: 1.7 $ 
-
   Avoids many include file circular dependencies.
 
   Try to keep this file down to the minimum to avoid
@@ -21,12 +15,19 @@
 
 */
 
-#include "platform.h"
+#include "tidyplatform.h"
 #include "tidy.h"
 
 /* Internal symbols are prefixed to avoid clashes with other libraries */
 #define TYDYAPPEND(str1,str2) str1##str2
 #define TY_(str) TYDYAPPEND(prvTidy,str)
+
+/* Internal symbols are prefixed with 'hidden' attr, to avoid exporting */
+#if defined(_WIN32) || defined(__CYGWIN__)
+#define TY_PRIVATE
+#else
+#define TY_PRIVATE __attribute__((__visibility__("hidden")))
+#endif
 
 struct _StreamIn;
 typedef struct _StreamIn StreamIn;
@@ -37,7 +38,10 @@ typedef struct _StreamOut StreamOut;
 struct _TidyDocImpl;
 typedef struct _TidyDocImpl TidyDocImpl;
 
+struct _TidyMessageImpl;
+typedef struct _TidyMessageImpl TidyMessageImpl;
 
+/* @todo: this name isn't very instructive! */
 struct _Dict;
 typedef struct _Dict Dict;
 
@@ -56,7 +60,7 @@ typedef struct _IStack IStack;
 struct _Lexer;
 typedef struct _Lexer Lexer;
 
-extern TidyAllocator TY_(g_default_allocator);
+TY_PRIVATE extern TidyAllocator TY_(g_default_allocator);
 
 /** Wrappers for easy memory allocation using an allocator */
 #define TidyAlloc(allocator, size) ((allocator)->vtbl->alloc((allocator), (size)))

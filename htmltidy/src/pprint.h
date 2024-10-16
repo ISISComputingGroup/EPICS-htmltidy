@@ -6,11 +6,6 @@
    (c) 1998-2007 (W3C) MIT, ERCIM, Keio University
    See tidy.h for the copyright notice.
   
-   CVS Info:
-     $Author: arnaud02 $ 
-     $Date: 2007/02/11 09:45:08 $ 
-     $Revision: 1.9 $ 
-
 */
 
 #include "forward.h"
@@ -58,21 +53,17 @@ typedef struct _TidyPrintImpl
     uint lbufsize;
     uint linelen;
     uint wraphere;
+    uint line;
   
     uint ixInd;
     TidyIndent indent[2];  /* Two lines worth of indent state */
 } TidyPrintImpl;
 
 
-#if 0 && SUPPORT_ASIAN_ENCODINGS
-/* #431953 - start RJ Wraplen adjusted for smooth international ride */
-uint CWrapLen( TidyDocImpl* doc, uint ind );
-#endif
+TY_PRIVATE void TY_(InitPrintBuf)( TidyDocImpl* doc );
+TY_PRIVATE void TY_(FreePrintBuf)( TidyDocImpl* doc );
 
-void TY_(InitPrintBuf)( TidyDocImpl* doc );
-void TY_(FreePrintBuf)( TidyDocImpl* doc );
-
-void TY_(PFlushLine)( TidyDocImpl* doc, uint indent );
+TY_PRIVATE void TY_(PFlushLine)( TidyDocImpl* doc, uint indent );
 
 
 /* print just the content of the body element.
@@ -82,12 +73,17 @@ void TY_(PFlushLine)( TidyDocImpl* doc, uint indent );
 ** -- Sebastiano Vigna <vigna@dsi.unimi.it>
 */
 
-void TY_(PrintBody)( TidyDocImpl* doc );       /* you can print an entire document */
+TY_PRIVATE void TY_(PrintBody)( TidyDocImpl* doc );       /* you can print an entire document */
                                           /* node as body using PPrintTree() */
 
-void TY_(PPrintTree)( TidyDocImpl* doc, uint mode, uint indent, Node *node );
+TY_PRIVATE void TY_(PPrintTree)( TidyDocImpl* doc, uint mode, uint indent, Node *node );
 
-void TY_(PPrintXMLTree)( TidyDocImpl* doc, uint mode, uint indent, Node *node );
+TY_PRIVATE void TY_(PPrintXMLTree)( TidyDocImpl* doc, uint mode, uint indent, Node *node );
 
+/*\
+ * 20150515 - support using tabs instead of spaces
+\*/
+TY_PRIVATE void TY_(PPrintTabs)(void);
+TY_PRIVATE void TY_(PPrintSpaces)(void);
 
 #endif /* __PPRINT_H__ */

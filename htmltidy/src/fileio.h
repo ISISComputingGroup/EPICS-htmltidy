@@ -9,36 +9,32 @@
   (c) 1998-2007 (W3C) MIT, ERCIM, Keio University
   See tidy.h for the copyright notice.
 
-  CVS Info:
-    $Author: arnaud02 $ 
-    $Date: 2007/05/30 16:47:31 $ 
-    $Revision: 1.8 $ 
 */
 
-#include "buffio.h"
+#include "tidybuffio.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /** Allocate and initialize file input source */
-int TY_(initFileSource)( TidyAllocator *allocator, TidyInputSource* source, FILE* fp );
+TY_PRIVATE int TY_(initFileSource)( TidyAllocator *allocator, TidyInputSource* source, FILE* fp );
 
 /** Free file input source */
-void TY_(freeFileSource)( TidyInputSource* source, Bool closeIt );
+TY_PRIVATE void TY_(freeFileSource)( TidyInputSource* source, Bool closeIt );
 
 #if SUPPORT_POSIX_MAPPED_FILES
 /** Allocate and initialize file input source using Standard C I/O */
-int TY_(initStdIOFileSource)( TidyAllocator *allocator, TidyInputSource* source, FILE* fp );
+TY_PRIVATE int TY_(initStdIOFileSource)( TidyAllocator *allocator, TidyInputSource* source, FILE* fp );
 
 /** Free file input source using Standard C I/O */
-void TY_(freeStdIOFileSource)( TidyInputSource* source, Bool closeIt );
+TY_PRIVATE void TY_(freeStdIOFileSource)( TidyInputSource* source, Bool closeIt );
 #endif
 
 /** Initialize file output sink */
-void TY_(initFileSink)( TidyOutputSink* sink, FILE* fp );
+TY_PRIVATE void TY_(initFileSink)( TidyOutputSink* sink, FILE* fp );
 
 /* Needed for internal declarations */
-void TIDY_CALL TY_(filesink_putByte)( void* sinkData, byte bv );
+TY_PRIVATE void TIDY_CALL TY_(filesink_putByte)( void* sinkData, byte bv );
 
 #ifdef __cplusplus
 }
