@@ -56,8 +56,12 @@ install:
 	-$(MKDIR) $(TOP)/include
 	$(CP) -f $(INSTALL_DIR)/include/*.h* $(TOP)/include/
 ifeq ($(findstring linux,$(EPICS_HOST_ARCH)),)
+ifneq ($(findstring static,$(EPICS_HOST_ARCH)),)
+	$(CP) -f $(INSTALL_DIR)/lib/tidy_static*.lib $(TOP)/lib/$(EPICS_HOST_ARCH)/tidy.lib
+else
 	$(RM) -f $(INSTALL_DIR)/lib/tidy_static*.lib
 	$(CP) -f $(INSTALL_DIR)/lib/tidy*.lib $(TOP)/lib/$(EPICS_HOST_ARCH)/tidy.lib
+endif
 else
 	$(CP) -f $(INSTALL_DIR)/lib/libtidy.* $(TOP)/lib/$(EPICS_HOST_ARCH)/
 endif
