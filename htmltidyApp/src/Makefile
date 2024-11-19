@@ -45,9 +45,11 @@ include $(TOP)/configure/RULES
 #----------------------------------------
 #  ADD RULES AFTER THIS LINE
 
+# we need to define DISABLE_DEBUG_LOG or otherwise on a Debug buidl we get lots of extra details
+
 ifdef T_A
 install:
-	$(CMAKE) $(TOP)/htmltidy -G "$(CMAKE_GENERATOR)" -A "$(PLATFORM)" -DCMAKE_INSTALL_PREFIX:PATH="$(INSTALL_DIR)" $(CMAKE_CONFIG_FLAGS)
+	$(CMAKE) -E env CFLAGS=-DDISABLE_DEBUG_LOG $(CMAKE) $(TOP)/htmltidy -G "$(CMAKE_GENERATOR)" -A "$(PLATFORM)" -DCMAKE_INSTALL_PREFIX:PATH="$(INSTALL_DIR)" $(CMAKE_CONFIG_FLAGS)
 	$(CMAKE) --build . --target install --config $(CMAKE_CONFIG) $(CMAKE_BUILD_FLAGS)
 	-$(MKDIR) $(TOP)/bin
 	-$(MKDIR) $(TOP)/bin/$(EPICS_HOST_ARCH)
